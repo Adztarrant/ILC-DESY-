@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<!-- ?xml-stylesheet type="text/xsl" href="http://ilcsoft.desy.de/marlin/marlin.xsl"? -->
+<!-- ?xml-stylesheet type="text/xsl" href="marlin.xsl"? -->
+
+<!-- Loading shared library : /nfs/dust/ilc/user/tarranta/mymarlin/lib/libmymarlin.so.0.1.0 (libmymarlin.so)-->
+
+<!--##########################################
+    #                                        #
+    #     Example steering file for marlin   #
+    #                                        #
+    ##########################################-->
+
+
+<marlin xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://ilcsoft.desy.de/marlin/marlin.xsd">
+ <constants>
+   <!-- The lcgeo directory where to look for the ILD model -->
+   <constant name="lcgeo_DIR" value="/cvmfs/ilc.desy.de/sw/x86_64_gcc49_sl6/v02-00-01/lcgeo/v00-16-01" />
+   <!-- ILD detector model -->
+   <constant name="DetectorModel" value="ILD_l5_o1_v02" />
+   <!-- The full compact file name -->
+   <constant name="CompactFile" value="${lcgeo_DIR}/ILD/compact/${DetectorModel}/${DetectorModel}.xml" />
+ </constants>
+
+ <execute>
+   <processor name="MyAIDAProcessor"/>
+   <processor name="InitDD4hep"/>
+   <processor name="MyRECDiagnostics"/>  
+ </execute>
+
+ <global>
+  <parameter name="LCIOInputFiles"> <!-- this is the input file !!!!!: -->
+  mcparticles_muon_Angle_random_Momentum_+20GeV_REC.slcio
+  </parameter>
+  <!-- limit the number of processed records (run+evt): -->  
+  <parameter name="MaxRecordNumber" value="55001" />  
+  <parameter name="SkipNEvents" value="0" />  
+  <parameter name="SupressCheck" value="false" />  
+  <parameter name="AllowToModifyEvent" value="false" />  
+  <parameter name="GearXMLFile"></parameter>  
+  <parameter name="Verbosity" options="DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT"> SILENT  </parameter> 
+  <parameter name="RandomSeed" value="1234567890" />
+  <!-- optionally limit the collections that are read from the input file: -->  
+  <!--parameter name="LCIOReadCollectionNames">MCParticle PandoraPFOs</parameter-->
+ </global>
+
+ <processor name="MyAIDAProcessor" type="AIDAProcessor">
+ <!--Processor that handles AIDA files. Creates on directory per processor.  Processors only need to create and fill the histograms, clouds and tuples. Needs to be the first ActiveProcessor-->
+  <!-- compression of output file 0: false >0: true (default) -->
+  <parameter name="Compress" type="int">1 </parameter>
+  <!-- filename without extension-->
+
+ <!-- this is the inputoutput file !!!!!: -->
+  <parameter name="FileName" type="string">aida_file_ranp_allhighery</parameter>
+  <!-- type of output file root (default) or xml )-->
+  <parameter name="FileType" type="string">root </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+    <processor name="InitDD4hep" type="InitializeDD4hep">
+        <!--InitializeDD4hep reads a compact xml file and initializes the DD4hep::LCDD object-->
+        <!--Name of the DD4hep compact xml file to load-->
+        <parameter name="DD4hepXMLFile" type="string">${CompactFile}</parameter>
+    </processor>
+
+ <processor name="MyConditionsProcessor" type="ConditionsProcessor">
+ <!--ConditionsProcessor provides access to conditions data  transparently from LCIO files or a databases, using LCCD-->
+  <!--Initialization of a conditions database handler-->
+  <!--parameter name="DBCondHandler" type="StringVec">conditionsName /lccd/myfolder HEAD  </parameter-->
+  <!--Initialization of a conditions db file handler-->
+  <!--parameter name="DBFileHandler" type="StringVec">conditionsName conditions.slcio collectionName  </parameter-->
+  <!--Initialization string for conditions database-->
+  <parameter name="DBInit" type="string">localhost:lccd_test:calvin:hobbes </parameter>
+  <!--Initialization of a data file handler-->
+  <!--parameter name="DataFileHandler" type="StringVec">conditionsName  </parameter-->
+  <!--Initialization of a simple conditions file handler-->
+  <!--parameter name="SimpleFileHandler" type="StringVec">conditionsName conditions.slcio collectionName  </parameter-->
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MyConvertToMIPScale" type="ConvertToMIPScale">
+ <!--transforms the energy amplitude of each calorimeter hit passing the cut into the MIP scale-->
+  <!--Cut in MIPs on the amplitudes in the ECAL collection-->
+  <parameter name="CutECAL" type="float">0 </parameter>
+  <!--Cut in MIPs on the amplitudes in the HCAL collection-->
+  <parameter name="CutHCAL" type="float">0 </parameter>
+  <!--ECAL Input Collection Name-->
+  <parameter name="ECALInputCollectionName" type="string" lcioInType="CalorimeterHit">ECAL </parameter>
+  <!--ECAL Output Collection Name, stores calorimeter hits with amplitudes in MIP energy scale-->
+  <parameter name="ECALOutputCollectionName" type="string" lcioOutType="CalorimeterHit">ECAL_MIP </parameter>
+  <!--HCAL Input Collection Name-->
+  <parameter name="HCALInputCollectionName" type="string" lcioInType="CalorimeterHit">HCAL </parameter>
+  <!--HCAL Output Collection Name, stores calorimeter hits with amplitudes in MIP energy scale-->
+  <parameter name="HCALOutputCollectionName" type="string" lcioOutType="CalorimeterHit">HCAL_MIP </parameter>
+  <!--Coefficients for the MIP calibration in the ECAL in GeV/MIP-->
+  <parameter name="MIPCoeffEcal" type="FloatVec">1 1  </parameter>
+  <!--Coefficients for the MIP calibration in the HCAL in GeV/MIP-->
+  <parameter name="MIPCoeffHcal" type="FloatVec">1  </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MyCutOnCosThetaQQbar" type="CutOnCosThetaQQbar">
+ <!--The output condition of this processor is false as long as the |cos(theta)| > cutCosTheta and true otherwise.-->
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+  <!--cut on |cos(theta)|-->
+  <parameter name="cutCosTheta" type="double">1 </parameter>
+</processor>
+
+ <processor name="MyCutOnGEANT4Bug" type="CutOnGEANT4Bug">
+ <!--The output condition of this processor is true as long as no track has more than a factor of k more energy deposited in the calorimeter as its energy given by momentum and mass. This should cut out events where GEANT4 produces additional energy depositions. If at least one such a track is found the return value is false. Only tracks with an energy larger than eMin are taken into account.-->
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+  <!--Calibration coefficients for ECAL-->
+  <parameter name="calibrCoeffECAL" type="FloatVec">33.0235 93.5682  </parameter>
+  <!--Calibration coefficients for HCAL-->
+  <parameter name="calibrCoeffHCAL" type="FloatVec">21.1963  </parameter>
+  <!--name of the LC Relation collection between Calorimeterhits and SimCalorimeterhits-->
+  <parameter name="colNameRelationCaloHitToSimCaloHit" type="string">RelationCaloHit </parameter>
+  <!--name of the LC Relation collection between Tracks and MC particles-->
+  <parameter name="colNameRelationTrackToMCP" type="string">TrueTrackToMCP </parameter>
+  <!--name of the Track collection-->
+  <parameter name="colNameTracks" type="string">Tracks </parameter>
+  <!--minimal energy of tracks taken into account (in GeV)-->
+  <parameter name="eMin" type="double">5 </parameter>
+  <!--if the track has more than k times its MC energy deposited the return value is set to false-->
+  <parameter name="k" type="double">1.75 </parameter>
+</processor>
+
+ <processor name="MyDrawMCParticles" type="DrawMCParticles">
+ <!--DrawMCParticles draws the MC Particle prediction w/o calorimeters in the ced display-->
+  <!--Energy Cut in GeV-->
+  <parameter name="EnergyCut" type="double">0.01 </parameter>
+  <!--Name of the MCParticle collection-->
+  <parameter name="MCCollectionName" type="string">MCParticle </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+  <!--Wait for Keyboard before proceed-->
+  <parameter name="WaitForKeyboard" type="int">1 </parameter>
+  <!--Radius of the innermost detector component (VTX) in cylindrical coordinates-->
+  <parameter name="rIn" type="double">15.5 </parameter>
+  <!--z coordinate of the innermost detector component (VTX) in cylindrical coordinates-->
+  <parameter name="zIn" type="double">50 </parameter>
+</processor>
+
+ <processor name="MyEventSelector" type="EventSelector">
+ <!--EventSelector returns true if given event was specified in EventList-->
+  <!--event list - pairs of Eventnumber RunNumber-->
+  <parameter name="EventList" type="IntVec"> </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MyLCIOOutputProcessor" type="LCIOOutputProcessor">
+ <!--Writes the current event to the specified LCIO outputfile. Needs to be the last ActiveProcessor.-->
+  <!--drops the named collections from the event-->
+  <!--parameter name="DropCollectionNames" type="StringVec">TPCHits HCalHits  </parameter-->
+  <!--drops all collections of the given type from the event-->
+  <!--parameter name="DropCollectionTypes" type="StringVec">SimTrackerHit SimCalorimeterHit  </parameter-->
+  <!-- write complete objects in subset collections to the file (i.e. ignore subset flag)-->
+  <!--parameter name="FullSubsetCollections" type="StringVec">MCParticlesSkimmed  </parameter-->
+  <!--force keep of the named collections - overrules DropCollectionTypes (and DropCollectionNames)-->
+  <!--parameter name="KeepCollectionNames" type="StringVec">MyPreciousSimTrackerHits  </parameter-->
+  <!-- name of output file -->
+  <parameter name="LCIOOutputFile" type="string">muon_rand_outfile10.slcio </parameter>
+  <!--write mode for output file:  WRITE_APPEND, WRITE_NEW or None-->
+  <parameter name="LCIOWriteMode" type="string">None </parameter>
+  <!--will split output file if size in kB exceeds given value - doesn't work with APPEND and NEW-->
+  <!--parameter name="SplitFileSizekB" type="int">1992294 </parameter-->
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MyMemoryMonitor" type="MemoryMonitor">
+ <!--Simple processor to print out the memory consumption at defined intervals-->
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+  <!--Print Event Number Every N Events-->
+  <parameter name="howOften" type="int">1 </parameter>
+</processor>
+
+ <processor name="MyMyProcessor" type="MyProcessor">
+ <!--MyProcessor does whatever it does ...-->
+  <!--Name of the MCParticle collection-->
+  <parameter name="CollectionName" type="string" lcioInType="MCParticle">MCParticle </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MyPGDBP" type="PGDBP">
+ <!--Physical and Geometrical Database (for Boojum at least)-->
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MyRECDiagnostics" type="RECDiagnostics">
+ <!--RECDiagnostics generates information for tracking performance monitor.-->
+  <!--Name of the MCParticle input collection-->
+  <parameter name="MCParticleCollection" type="string" lcioInType="MCParticle">MCParticle </parameter>
+  <!--Name of the ReconstructedParticle collection-->
+  <parameter name="PFOCollection" type="string" lcioInType="ReconstructedParticle">ReconstructedParticle </parameter>
+  <!--Name of the FullLDC track collection-->
+  <parameter name="StudiedTracks" type="string" lcioInType="Track">MarlinTrkTracks </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">MESSAGE </parameter-->
+  <!--Name truth input collection for recon-->
+  <parameter name="reconstucted Particle to truth info" type="string" lcioInType="LCRelation">RecoMCTruthLink </parameter>
+  <!--Name of track reconstruction truth input collection-->
+  <parameter name="track reco to truth info" type="string" lcioInType="LCRelation">MarlinTrkTracksMCTruthLink </parameter>
+  <!--Name truth input collection for recon-->
+  <parameter name="truth to reconstucted Particle info" type="string" lcioInType="LCRelation">MCTruthRecoLink </parameter>
+  <!--Name of track reconstruction truth input collection-->
+  <parameter name="truth to track reco info" type="string" lcioInType="LCRelation">MCTruthMarlinTrkTracksLink </parameter>
+</processor>
+
+
+ <processor name="MySelectEvents" type="SelectEvents">
+ <!--SelectEvent Processor selects certain events from input files-->
+  <!--First Event-->
+  <parameter name="FirstEvent" type="int">0 </parameter>
+  <!--Last Event-->
+  <parameter name="LastEvent" type="int">0 </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MySimpleFastMCProcessor" type="SimpleFastMCProcessor">
+ <!--SimpleFastMCProcessor creates ReconstrcutedParticles from MCParticles according to the resolution given in the steering file.-->
+  <!--Resolution of charged particles in polar angle range:  d(1/P)  th_min  th_max-->
+  <parameter name="ChargedResolution" type="FloatVec">5e-05 0 1.5708  </parameter>
+  <!--Name of the MCParticle input collection-->
+  <parameter name="InputCollectionName" type="string" lcioInType="MCParticle">MCParticle </parameter>
+  <!--Name of the MCTruthMapping output collection-->
+  <parameter name="MCTruthMappingCollectionName" type="string" lcioOutType="LCRelation">MCTruthMapping </parameter>
+  <!--No reconstructed particles are produced for smaller momenta (in [GeV])-->
+  <parameter name="MomentumCut" type="float">0.001 </parameter>
+  <!--Resolution dE/E=A+B/sqrt(E/GeV) of neutral hadrons in polar angle range: A  B th_min  th_max-->
+  <parameter name="NeutralHadronResolution" type="FloatVec">0.04 0.5 0 1.5708  </parameter>
+  <!--Resolution dE/E=A+B/sqrt(E/GeV) of photons in polar angle range: A  B th_min  th_max-->
+  <parameter name="PhotonResolution" type="FloatVec">0.01 0.1 0 1.5708  </parameter>
+  <!--Name of the ReconstructedParticles output collection-->
+  <parameter name="RecoParticleCollectionName" type="string" lcioOutType="ReconstructedParticle">ReconstructedParticles </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MySimpleTimer" type="SimpleTimer">
+ <!--MARLIN Processor 'SimpleTimer', offers simple timer utilities-->
+  <!--Mode-->
+  <parameter name="Mode" type="int">0 </parameter>
+  <!--Seconds to Wait-->
+  <parameter name="SecondsToWait" type="int">0 </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MySkipNEvents" type="SkipNEvents">
+ <!--The output condition of this processor is false for the first n LCEvents. Afterwards it is set to true.-->
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+  <!--number of LCEvents to skip-->
+  <parameter name="nSkip" type="int">0 </parameter>
+</processor>
+
+ <processor name="MyStatusmonitor" type="Statusmonitor">
+ <!--Statusmonitor prints out information on running Marlin Job: Prints number of runs run and current number of the event. Counting is sequential and not the run or event ID.-->
+  <!--Print the event number every N events-->
+  <parameter name="HowOften" type="int">10000 </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MyStdHepReader" type="StdHepReader">
+ <!--Reads StdHep files as input and creates LCIO events with MCParticle collections. Make sure to not specify any LCIOInputFiles in the steering in order to read StdHep files.-->
+  <!--input file-->
+  <parameter name="StdHepFileName" type="string">input.stdhep </parameter>
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+ <processor name="MyTestProcessor" type="TestProcessor">
+ <!--Simple processor to test the marlin application. Prints run and event number.-->
+  <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+  <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
+</processor>
+
+
+</marlin>
