@@ -14,6 +14,6 @@ This will produce a root file. Opening this root file will allow access to all t
 
 #code 
 
-To change the particle type function varible mcpdg should be changed to the relvant monte carlo particle code. In defult this is set to be a muon (13). 
+To change the particle type function varible mcpdg should be changed to the relavnt monte carlo particle code. In defult this is set to be a muon (13). 
 
-If momentum above 20GeV is used then the max momentum in the efficency graph will need to be changed. 
+If momentum above 20GeV is used then the max momentum in the efficency graph will need to be changed. see RECDiagnostics in SRC
